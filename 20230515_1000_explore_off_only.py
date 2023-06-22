@@ -22,7 +22,7 @@ dsoff = dataoff[2]
 dsoff.plotHist(np.arange(0,10000,10), "filtValue")
 dsoff.plotHist(np.arange(0,40,0.5), "residualStdDev")
 med_ph = np.median(dsoff.filtValue)
-dsoff.cutAdd("cutResidualStdDev", lambda residualStdDev: residualStdDev < 25, setDefault=False, overwrite=True)
+dsoff.cutAdd("cutResidualStdDev", lambda residualStdDev: residualStdDev < 7, setDefault=False, overwrite=True)
 dsoff.cutAdd("cutROI", lambda filtValue: (filtValue > med_ph*0.9) & (filtValue < med_ph*1.1))
 dsoff.cutAdd("cutROIandResidualStdDev", lambda cutROI, cutResidualStdDev: cutROI & cutResidualStdDev)
 dsoff.plotAvsB("relTimeSec", "residualStdDev")
@@ -54,12 +54,16 @@ dsoff.linefit(5.486e6, dlo=1e5, dhi=1e5, attr="energyDC")
 energyAndRelTimeSec = dsoff.getAttr(["relTimeSec","energyDC"], indsOrStates="START", cutRecipeName="cutResidualStdDev")
 np.savetxt("jan2023_10_min_data_try1.txt", energyAndRelTimeSec, header="time since first trigger (s), energy (eV)")
 
+def ceildiv(a, b):
+     return -(a // -b)
 
-def plot_blocks_by_residualStdDev(inds, title, blocksize=20, n_blocks=4):
+
+def plot_blocks_by_residualStdDev(inds, title, blocksize=20, max_n_blocks=4):
     residualStdDev = dsoff.residualStdDev[inds]
     sort_inds = np.argsort(residualStdDev)
     sorted_inds = inds[sort_inds]
     sorted_residualStdDev = residualStdDev[sort_inds]
+    n_blocks = min(ceildiv(len(inds), blocksize), max_n_blocks)
     for i_block in range(n_blocks):
         plt.figure(figsize=(8,4))
         plt.title(f"{title}\nblock {i_block}")
@@ -80,6 +84,13 @@ skipstep = max(len(inds)//100,1)
 
 plot_blocks_by_residualStdDev(inds[::skipstep], 
 title=f"the {len(inds)} pulses excluded from timestamp/energy list by residualStdDev only")
+
+for i in range(dsoff.offFile["extraCoefs"].shape[1]):
+    plt.figure()
+    plt.plot(dsoff.offFile.basis[:,3+i])
+    plt.title(f"extraCoefs{i}")
+    inds_extra_coefs_temp = np.argsort(dsoff.offFile["extraCoefs"][:,i])[-20:]
+    plot_blocks_by_residualStdDev(inds_extra_coefs_temp, title=f"extraCoefs{i} top 20")
 
 
 fulltime = dsoff.relTimeSec[-1]

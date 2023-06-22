@@ -45,7 +45,7 @@ ljh.set_output_npre_npost(500,500)
 # pulse_inds = ljh.edge_trigger_many_chunks(trig_vec, threshold=1000, i0=0, imax=100, verbose=True)
 # pulse_inds = ljh.fasttrig(100000, threshold=50, closest_trig=50)
 filter = np.array([-1]*10+[1]*10)
-pulse_inds_filter = ljh.fasttrig_filter(imax=ljh.nPulses//10, filter=filter, threshold=200)
+pulse_inds_filter = ljh.fasttrig_filter(imax=ljh.nPulses//10, filter=filter, threshold=2000)
 noise_inds = ljhfiles.get_noise_trigger_inds(pulse_inds_filter, n_dead_samples=100000, 
                                              n_record_samples=ljh.output_npre+ljh.output_npost,
                                              max_inds=5000)

@@ -65,7 +65,7 @@ with h5py.File(model_hdf5,"w") as h5:
         h5=h5,
         n_sigma_pt_rms=1000, # we want tails of previous pulses in our basis
         n_sigma_max_deriv=10,
-        n_basis=3,
+        n_basis=7,
         maximum_n_pulses=5000,
         mass_hdf5_path=ds.hdf5_group.file.filename+"_for_make_projectors",
         mass_hdf5_noise_path=ds.noise_records.hdf5_group.file.filename+"_for_make_projectors",

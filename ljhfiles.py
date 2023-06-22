@@ -112,54 +112,54 @@ class LJHFile():
         # Record the sample times in microseconds
         self.sample_usec = (np.arange(self.nSamples)-self.nPresamples) * self.timebase * 1e6
 
-    def filter_chunk(self, i, trig_vec):
-        # Z = nSamples (loaded per i)
-        # N = length of trig vec
-        # M = length of 2nd input to np.convolve
-        # np.convolve with "valid" outputs a vector of length M-N+1
-        # we want to get Z potential triggers per chunk, so if we look for simply being above
-        # threshold we need M-N+1=Z, so M=Z+N-1
-        # but we may want to do an edge trigger with diff, which makes M=Z+N
-        data = self._mmap["data"][i:i+2].flatten()
-        output = np.convolve(trig_vec, data[:self.nSamples+len(trig_vec)],"valid")
-        assert len(output) == self.nSamples+1
-        return output
+    # def filter_chunk(self, i, trig_vec):
+    #     # Z = nSamples (loaded per i)
+    #     # N = length of trig vec
+    #     # M = length of 2nd input to np.convolve
+    #     # np.convolve with "valid" outputs a vector of length M-N+1
+    #     # we want to get Z potential triggers per chunk, so if we look for simply being above
+    #     # threshold we need M-N+1=Z, so M=Z+N-1
+    #     # but we may want to do an edge trigger with diff, which makes M=Z+N
+    #     data = self._mmap["data"][i:i+2].flatten()
+    #     output = np.convolve(trig_vec, data[:self.nSamples+len(trig_vec)],"valid")
+    #     assert len(output) == self.nSamples+1
+    #     return output
     
     
-    def edge_trigger_chunk(self, i, trig_vec, threshold):
-        filter_output = self.filter_chunk(i, trig_vec)
-        over_threshold = filter_output>threshold
-        edge_triggers = np.diff(np.array(over_threshold,dtype=int))==1
-        return np.nonzero(edge_triggers)[0]+i*self.nSamples # offset inds based on i
+    # def edge_trigger_chunk(self, i, trig_vec, threshold):
+    #     filter_output = self.filter_chunk(i, trig_vec)
+    #     over_threshold = filter_output>threshold
+    #     edge_triggers = np.diff(np.array(over_threshold,dtype=int))==1
+    #     return np.nonzero(edge_triggers)[0]+i*self.nSamples # offset inds based on i
     
-    def edge_trigger_many_chunks_debug(self, trig_vec, threshold, i0=0, imax=None, verbose=True):
-        inds = self.edge_trigger_many_chunks(trig_vec, threshold, i0, imax, verbose)
-        inds_rem_offset = inds - i0*self.nSamples
-        alldata = self._mmap["data"][i0:imax+2].flatten()
-        alldata_filtered = np.convolve(trig_vec, alldata, "valid")
+    # def edge_trigger_many_chunks_debug(self, trig_vec, threshold, i0=0, imax=None, verbose=True):
+    #     inds = self.edge_trigger_many_chunks(trig_vec, threshold, i0, imax, verbose)
+    #     inds_rem_offset = inds - i0*self.nSamples
+    #     alldata = self._mmap["data"][i0:imax+2].flatten()
+    #     alldata_filtered = np.convolve(trig_vec, alldata, "valid")
 
-        xinds = i0*self.nSamples + np.arange(0, (imax+2-i0)*self.nSamples)
-        plt.figure()
-        plt.plot(xinds, alldata, ".", label="alldata")
-        plt.plot(xinds[:len(alldata_filtered)], alldata_filtered, label="filtered")
-        plt.plot(inds_rem_offset, alldata[inds_rem_offset],"o", label="trig inds")
-        plt.plot(inds_rem_offset, alldata_filtered[inds_rem_offset],"o", label="trig inds filtered")
-        plt.axhline(threshold, label="threshold")
-        plt.xlabel("framecount")
-        plt.ylabel("value")
-        plt.legend()
+    #     xinds = i0*self.nSamples + np.arange(0, (imax+2-i0)*self.nSamples)
+    #     plt.figure()
+    #     plt.plot(xinds, alldata, ".", label="alldata")
+    #     plt.plot(xinds[:len(alldata_filtered)], alldata_filtered, label="filtered")
+    #     plt.plot(inds_rem_offset, alldata[inds_rem_offset],"o", label="trig inds")
+    #     plt.plot(inds_rem_offset, alldata_filtered[inds_rem_offset],"o", label="trig inds filtered")
+    #     plt.axhline(threshold, label="threshold")
+    #     plt.xlabel("framecount")
+    #     plt.ylabel("value")
+    #     plt.legend()
 
-        return inds
+    #     return inds
 
-    def edge_trigger_many_chunks(self, trig_vec, threshold, i0=0, imax=None, verbose=True):
-        inds = []
-        if imax is None:
-            imax = len(self._mmap)-1
-        for i in range(i0, imax):
-            if verbose and i%10==0:
-                print(f"{i} in i={i0}, imax={imax}")
-            inds += list(self.edge_trigger_chunk(i, trig_vec, threshold))
-        return np.array(inds)
+    # def edge_trigger_many_chunks(self, trig_vec, threshold, i0=0, imax=None, verbose=True):
+    #     inds = []
+    #     if imax is None:
+    #         imax = len(self._mmap)-1
+    #     for i in range(i0, imax):
+    #         if verbose and i%10==0:
+    #             print(f"{i} in i={i0}, imax={imax}")
+    #         inds += list(self.edge_trigger_chunk(i, trig_vec, threshold))
+    #     return np.array(inds)
     
     def get_record_at(self, j):
         assert (self.output_npre+self.output_npost) < self.nSamples-1
@@ -224,22 +224,22 @@ class LJHFile():
         plt.grid(True)
         plt.tight_layout()
 
-    def fasttrig(self, imax, threshold, closest_trig):
-        imax = min(imax, len(self._mmap))
-        inds = numba.typed.List([0])[:0] # get an integer typed list?
-        datas = self._mmap["data"]
-        data = np.zeros(self.nSamples, dtype="int64")
-        dnext = datas[0][0]
-        n_since_pulse=closest_trig
-        printstep = max(10, imax//100)
-        for i in range(imax):
-            data[:] = datas[i]
-            if i%printstep == 0:
-                print(f"fasttrig {i=}/{imax=}")
-            n_since_pulse, dnext = fasttrig_segment(data, threshold, dnext, inds, 
-                                                    ind_offset=i*self.nSamples, n_since_pulse=n_since_pulse, 
-                                                    closest_trig=closest_trig)
-        return inds
+    # def fasttrig(self, imax, threshold, closest_trig):
+    #     imax = min(imax, len(self._mmap))
+    #     inds = numba.typed.List([0])[:0] # get an integer typed list?
+    #     datas = self._mmap["data"]
+    #     data = np.zeros(self.nSamples, dtype="int64")
+    #     dnext = datas[0][0]
+    #     n_since_pulse=closest_trig
+    #     printstep = max(10, imax//100)
+    #     for i in range(imax):
+    #         data[:] = datas[i]
+    #         if i%printstep == 0:
+    #             print(f"fasttrig {i=}/{imax=}")
+    #         n_since_pulse, dnext = fasttrig_segment(data, threshold, dnext, inds, 
+    #                                                 ind_offset=i*self.nSamples, n_since_pulse=n_since_pulse, 
+    #                                                 closest_trig=closest_trig)
+    #     return inds
     
     def fasttrig_filter(self, imax, filter, threshold):
         imax = min(imax, len(self._mmap))
@@ -263,22 +263,22 @@ class LJHFile():
     def read_trace(self, i):
         return self._mmap[i]["data"]
 
-@njit
-def fasttrig_segment(data, threshold, d_initial, inds, ind_offset, n_since_pulse, closest_trig):
-    # print(f"{threshold=} {d_initial=}, {inds=}\n{ind_offset=}, {in_pulse=}")
-    # print(f"{data[-10:]=}")
-    dnext = d_initial
-    for j in range(len(data)):
-        d = dnext
-        dnext = data[j]
-        diff = dnext-d
-        if diff > threshold and n_since_pulse >= closest_trig:
-            inds.append(j+ind_offset)  
-            n_since_pulse = 0
-        n_since_pulse+=1
+# @njit
+# def fasttrig_segment(data, threshold, d_initial, inds, ind_offset, n_since_pulse, closest_trig):
+#     # print(f"{threshold=} {d_initial=}, {inds=}\n{ind_offset=}, {in_pulse=}")
+#     # print(f"{data[-10:]=}")
+#     dnext = d_initial
+#     for j in range(len(data)):
+#         d = dnext
+#         dnext = data[j]
+#         diff = dnext-d
+#         if diff > threshold and n_since_pulse >= closest_trig:
+#             inds.append(j+ind_offset)  
+#             n_since_pulse = 0
+#         n_since_pulse+=1
 
-    # print(f"{diff=} {dnext=} {d=} {j=} {data[j]=}")      
-    return n_since_pulse, dnext
+#     # print(f"{diff=} {dnext=} {d=} {j=} {data[j]=}")      
+#     return n_since_pulse, dnext
 
 @njit 
 def fasttrig_filter_segment(data, filter, cache, filtered_abc, threshold, inds, ind_offset):
