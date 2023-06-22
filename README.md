@@ -22,3 +22,12 @@ Upon re-running the code, the various created files will be overwritten. Sometim
 3. ipython
 4. `%run 20230515_0000_explore_and_make_off.py`
 5. inspect plots, there should be a lot
+
+# explore more and make some plots
+1. same deal with pointing to the right files
+2. exit ipython (to make sure we don't have weird state hanging around that breaks reproducibility)
+3. ipython
+4. `%run 20230515_1000_explore_off_only.py`
+5. inspect plots, in particular look at the plots of weird pulses both found by residualStdDev and found by looking for large amplitudes in the "extraCoefs" which are the further basis components beyond mean, average pulse, and derivative of the average pulse. 
+
+Since we talked, I made a few changes. 1. I increased the threshold from 200 to 2000 to avoid retriggering on the fast right pulses. 2. I increased from nbasis=3 to nbasis=7, which seems to have handled the pulses that just had a tail from a previous pulse. I also made plots based on the value of each of the extra coefficients as another way to look for weird pulses.
