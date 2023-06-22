@@ -88,7 +88,7 @@ title=f"the {len(inds)} pulses excluded from timestamp/energy list by residualSt
 for i in range(dsoff.offFile["extraCoefs"].shape[1]):
     plt.figure()
     plt.plot(dsoff.offFile.basis[:,3+i])
-    plt.title(f"extraCoefs{i}")
+    plt.title(f"extraCoefs{i} associated basis")
     inds_extra_coefs_temp = np.argsort(dsoff.offFile["extraCoefs"][:,i])[-20:]
     plot_blocks_by_residualStdDev(inds_extra_coefs_temp, title=f"extraCoefs{i} top 20")
 

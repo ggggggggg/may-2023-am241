@@ -1,5 +1,7 @@
 ## Walkthrough for existing code for 20230515_0000 chan 2
 
+You will need to install mass, and possibly a few other packages, the easiest way is to run the code and if something fails to import, then try `pip install x` eg if you can't import scipy `pip install scipy`.
+
 # retrigger
 Here we open the existing continuous LJH files and re-trigger. The reason for this is that since we're aiming for absolute count rate, we want to be able to re-analyze the data different ways to make sure we get the same answer, and don't "lock in" a poor triggering choice by using the built in triggering in DASTARD. This is not a normal mode of operation, so all the code is one off and a bit janky. I'm showing how to do one channel, and then you'll have to take over and figure out how to manage this on many channels and to generalize and move forward.
 
