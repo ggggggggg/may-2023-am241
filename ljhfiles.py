@@ -198,6 +198,8 @@ class LJHFile():
             dest_fp.write(ljh_header_str(self.header_dict).encode() ) 
             printstep = max(10, imax//100)
             for i in range(imax):
+                if i%printstep==0:
+                    print(f"{dest_path} {i}/{len(inds)}")
                 record = self._mmap[i].copy()
                 record["data"] += offset
                 record["data"] = np.array(record["data"]*scaling,dtype="uint16")
@@ -302,7 +304,7 @@ def fasttrig_filter_segment(data, filter, cache, filtered_abc, threshold, inds, 
         running_replace_last_in_place(cache, data[j])
         a,b = b,c
         c = np.dot(cache, filter)
-        if b>threshold and b>c and b>a:
+        if b>threshold and b>=c and b>a:
             inds.append(j+ind_offset)
     return cache, filtered_abc
 
