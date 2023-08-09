@@ -30,10 +30,12 @@ class LJHFile():
         self.output_npost = npost
         self.output_record = np.zeros(1,dtype=self.output_dtype)[0]
     
-    def plot_median_value_vs_time(self, median_filter_len=20, chunk_skip_size=10):
+    def plot_median_value_vs_time(self, median_filter_len=20, chunk_skip_size=10, offset = None):
         t_sec = self._mmap["posix_usec"][::chunk_skip_size]*1e-6
-        median = scipy.ndimage.median_filter(self._mmap["data"][::chunk_skip_size,0].flatten(),
-                                             median_filter_len)
+        data = self._mmap["data"][::chunk_skip_size,0].flatten()
+        if offset is not None:
+            data += offset
+        median = scipy.ndimage.median_filter(data, median_filter_len)
         
         plt.figure()
         plt.plot(t_sec-t_sec[0], median, ".")
@@ -161,7 +163,7 @@ class LJHFile():
     #         inds += list(self.edge_trigger_chunk(i, trig_vec, threshold))
     #     return np.array(inds)
     
-    def get_record_at(self, j):
+    def get_record_at(self, j, offset = None):
         assert (self.output_npre+self.output_npost) < self.nSamples-1
         i = (j-self.output_npre)//self.nSamples
         if self._cache_i != i:
@@ -171,10 +173,12 @@ class LJHFile():
         self.output_record["data"] = self._cache_data[j_start:j_start+self.output_npre+self.output_npost]
         self.output_record["rowcount"] = j*self.number_of_rows
         self.output_record["posix_usec"] = self._cache_posix_usec+j_start*self.timebase*1e6
+        if offset is not None:
+            self.output_record["data"] += offset
         return self.output_record
     
     
-    def write_traces_to_new_ljh(self, inds, dest_path, overwrite=False):
+    def write_traces_to_new_ljh(self, inds, dest_path, overwrite=False, offset = None):
         if os.path.exists(dest_path) and not overwrite:
             raise IOError(f"The ljhfile {dest_path} exists and overwrite was not set to True")
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
@@ -185,7 +189,7 @@ class LJHFile():
             for i, ind in enumerate(inds):
                 if i%printstep==0:
                     print(f"{dest_path} {i}/{len(inds)}")
-                record = self.get_record_at(ind)
+                record = self.get_record_at(ind, offset)
                 record.tofile(dest_fp)
 
     def output_header_dict(self):
@@ -203,9 +207,11 @@ class LJHFile():
     def path_with_incremented_runnum(self, inc):
         return path_with_incremented_runnum(os.path.abspath(self.filename), inc)
     
-    def plot_first_n_samples_with_inds(self, n, pulse_inds, noise_inds, filter=None):
+    def plot_first_n_samples_with_inds(self, n, pulse_inds, noise_inds, filter=None, offset=None):
         j = n//self.nSamples+1
         data = self._mmap["data"][:j].flatten()[:n]
+        if offset is not None:
+            data += offset
         plt.figure()
         plt.plot(data)
         pulse_inds = np.array(pulse_inds,dtype="int64")
@@ -241,27 +247,34 @@ class LJHFile():
     #                                                 closest_trig=closest_trig)
     #     return inds
     
-    def fasttrig_filter(self, imax, filter, threshold):
+    def fasttrig_filter(self, imax, filter, threshold, offset=None):
         imax = min(imax, len(self._mmap))
         inds = numba.typed.List([0])[:0] # get an integer typed list?
         datas = self._mmap["data"]
         filter = np.array(filter, dtype="float64")
         data = np.zeros(self.nSamples, dtype="int64")
         data[:] = datas[0]
+        if offset is not None:
+            data += offset
         cache = np.zeros(len(filter), dtype="float64")
         cache[:] = data[:len(filter)]
         filtered_abc = (0,0,0)
         printstep = max(10, imax//100)
         for i in range(imax):
             data[:] = datas[i]
+            if offset is not None:
+                data += offset
             if i%printstep == 0:
                 print(f"fasttrig_filtered {i=}/{imax=}")
             cache, filtered_abc = fasttrig_filter_segment(data, filter, cache, filtered_abc, threshold, 
                                                           inds, i*self.nSamples-len(filter)//2)
         return inds        
     
-    def read_trace(self, i):
-        return self._mmap[i]["data"]
+    def read_trace(self, i, offset = None):
+        data = self._mmap[i]["data"]
+        if offset is not None:
+            data += offset        
+        return data
 
 # @njit
 # def fasttrig_segment(data, threshold, d_initial, inds, ind_offset, n_since_pulse, closest_trig):
