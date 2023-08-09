@@ -13,9 +13,9 @@ import devel
 import ljhfiles
 plt.close("all")
 plt.ion()
-
-pulse_files = ["20230515//1000//20230515_run1000_chan2.off"]
-ljh = ljhfiles.LJHFile("20230515//1000//20230515_run1000_chan2.ljh")
+basepath = "20230515//1000//20230515_run1000_chan2"
+pulse_files = [basepath+".off"]
+ljh = ljhfiles.LJHFile(basepath+".ljh")
 dataoff = ChannelGroup(pulse_files)
 dataoff.setDefaultBinsize(2.5e3) # set the default bin size in eV for fits
 dsoff = dataoff[2]
@@ -51,9 +51,9 @@ dsoff.linefit(5.486e6, dlo=1e5, dhi=1e5, attr="energyDC")
 
 
 # dsoff.cutAdd("cutROIandResidualStdDev", lambda cutResidualStdDev, energyDC: (energyDC > 5.3e6)&(energyDC<5.6e6)&(cutResidualStdDev), overwrite=True)
+# RPF - make text file of time & energyDC with cuts: to do- save in efficient binary format?
 energyAndRelTimeSec = dsoff.getAttr(["relTimeSec","energyDC"], indsOrStates="START", cutRecipeName="cutResidualStdDev")
-np.savetxt("jan2023_10_min_data_try1.txt", energyAndRelTimeSec, header="time since first trigger (s), energy (eV)")
-
+np.savetxt(basepath+"listmode.txt", energyAndRelTimeSec, header="time since first trigger (s), energy (eV)")
 def ceildiv(a, b):
      return -(a // -b)
 
@@ -113,13 +113,14 @@ dsoff.plotHist(np.arange(0,40,0.1), "residualStdDev")
 plt.grid(True)
 plt.yscale("log")
 
-dsoff.plotHist(np.arange(0,8,0.01)*1e6, "energy")
+dsoff.plotHist(np.arange(0,12,0.01)*1e6, "energy")
 plt.grid(True)
 plt.yscale("log")
 
-dsoff.plotHist(np.arange(0,8,0.01)*1e6, "energy", cutRecipeName="cutResidualStdDev")
+dsoff.plotHist(np.arange(0,12,0.01)*1e6, "energy", cutRecipeName="cutResidualStdDev")
 plt.grid(True)
 plt.yscale("log")
+
 
 dsoff.plotAvsB2d("pretriggerDelta","energy", 
 (np.arange(-40,10,2.5), np.linspace(5.3e6, 5.6e6,100)),
