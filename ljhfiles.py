@@ -188,6 +188,21 @@ class LJHFile():
                 record = self.get_record_at(ind)
                 record.tofile(dest_fp)
 
+    def copy_ljh_with_offset_and_scaling(self, dest_path, offset, scaling, imax, overwrite=False):
+        if os.path.exists(dest_path) and not overwrite:
+            raise IOError(f"The ljhfile {dest_path} exists and overwrite was not set to True")
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        imax = min(imax, len(self._mmap))
+
+        with open(dest_path, "wb") as dest_fp:
+            dest_fp.write(ljh_header_str(self.header_dict).encode() ) 
+            printstep = max(10, imax//100)
+            for i in range(imax):
+                record = self._mmap[i].copy()
+                record["data"] += offset
+                record["data"] = np.array(record["data"]*scaling,dtype="uint16")
+                record.tofile(dest_fp)
+
     def output_header_dict(self):
         d = self.header_dict.copy()
         d["Presamples"] = self.output_npre
