@@ -20,7 +20,9 @@ except:
     d0 = os.getcwd()
 
 def file_pattern(runnum):
-    p = os.path.join(f"20230515",f"{runnum}",f"20230515_run{runnum}_chan*.ljh")
+    # p = os.path.join(f"20230517",f"{runnum}",f"20230517_run{runnum}_chan*.ljh")
+    # Specify channel 2 so it doesn't grab 1 as "first good dataset"
+    p = os.path.join(f"20230515",f"{runnum}",f"20230515_run{runnum}_chan2.ljh")
     return p
 
 def files(runnum):
@@ -44,12 +46,19 @@ ds = data.first_good_dataset
 ds.calibration["p_filt_value"]=mass.EnergyCalibration()
 ds.calibration["p_filt_value"].add_cal_point(np.median(ds.p_filt_value), 5.486e6)
 data.convert_to_energy("p_filt_value")
-ds.linefit(5.486e6, dlo=2e5, dhi=2e5, binsize=1e4)
+ds.linefit(5.486e6, dlo=2e5, dhi=2e5, binsize=2e3)
 data.summarize_filters(std_energy=5.486e6)
 ds = data.first_good_dataset
 plt.plot(ds.p_filt_value[:],".")
 ds.plot_hist(np.arange(0,8,.1),"p_energy")
 plt.xlabel("p_energy (MeV)")
+
+
+# Why can't I save histogram as csv?
+#np.savetxt("p_energy.txt",ds.p_energy)
+counts1,en1=np.histogram(ds.p_energy,bins=300,range=(5.3E6,5.6E6))
+np.savetxt(os.path.join(ds.filename[:-4]+"_p_energy_hist.txt"),counts1,header="300 5.3E6 5.6E6")
+
 
 data.auto_cuts(forceNew=True, nsigma_pt_rms=8)
 ds.plot_traces(np.nonzero(~ds.good())[0])
@@ -96,7 +105,7 @@ with open(os.path.join(ds.filename[:-9]+"experiment_state.txt"),"w") as f:
 
 dataoff = ChannelGroup(off_filenames)
 dataoff.setDefaultBinsize(1e4) # set the default bin size in eV for fits
-dsoff = dataoff[1] #2 for ch 2
+dsoff = dataoff[2] #2 for ch 2
 dsoff.cutAdd("cutResidualStdDev", lambda residualStdDev: residualStdDev < 8, setDefault=False, overwrite=True)
 dsoff.plotAvsB("relTimeSec", "residualStdDev")
 dsoff.plotAvsB("relTimeSec", "residualStdDev", cutRecipeName="cutResidualStdDev", axis=plt.gca())
@@ -148,4 +157,13 @@ counts = len(dsoff)-n
 fulltime = dsoff.relTimeSec[-1]
 print(f"count rate calculation [ignoring cutROIandResidualStdDev]= ({counts} counts)/({fulltime} s) = {counts/fulltime}")
 
-
+# plot histograms #
+# to do: save histograms #
+dsoff.plotHist(np.arange(5.35,5.55,0.001)*1e6, "energy",cutRecipeName=None)
+dsoff.plotHist(np.arange(5.35,5.55,0.001)*1e6, "energy", cutRecipeName="cutResidualStdDev", axis=plt.gca())
+dsoff.plotHist(np.arange(5.35,5.55,0.001)*1e6, "energyDC", cutRecipeName=None, axis=plt.gca())
+dsoff.plotHist(np.arange(5.35,5.55,0.001)*1e6, "energyDC", cutRecipeName="cutResidualStdDev", axis=plt.gca())
+#dsoff.linefit(lineNameOrEnergy=5.488e6, attr="energyDC",dlo=1.e4, dhi=1.2e4,cutRecipeName="cutResidualStdDev", axis=plt.gca())
+plt.legend(["No cuts","rsd cut", "energyDC","rsd cut+eNergyDC"])
+plt.xlabel("energy or energyDC")
+plt.grid(True)

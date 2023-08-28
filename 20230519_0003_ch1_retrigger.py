@@ -23,29 +23,30 @@ except:
     d0 = os.getcwd()
 
 def file_pattern(runnum):
-   # p = os.path.join("/home","pcuser","data",f"20230106",f"{runnum}",f"20230106_run{runnum}_chan*.ljh")
-    p = os.path.join(f"20230517",f"{runnum}",f"20230517_run{runnum}_chan*.ljh")
+    p = os.path.join("/home","pcuser","data",f"20230519",f"{runnum}",f"20230519_run{runnum}_chan*.ljh")
+    # p = os.path.join(f"20230519",f"{runnum}",f"20230519_run{runnum}_chan*.ljh")
     return p
 
 def files(runnum):
     return mass.filename_glob_expand(file_pattern(runnum))
 
-pulse_files = files("0000") #runnum 0000 is short run. 0001 is long one
+pulse_files = files("0003") #runnum 0000 is short run. 0001 is long one
 
 ljhs = [ljhfiles.LJHFile(fname) for fname in pulse_files]
 
 
-ljh = ljhs[1] #RPF ljhs[1] is ch2, if ch1 is present
+ljh = ljhs[0] #RPF ljhs[0] is ch1  1,000 us fall, 10/s rate, 1 us rise
 ljh.set_output_npre_npost(500,500)
 # trig_vec = -np.array([-1]*50+[1]*50)
 # comment out debug line, uncomment other, when doing large fraction of file
 # pulse_inds = ljh.edge_trigger_many_chunks_debug(trig_vec, threshold=1000, i0=0, imax=100, verbose=True)
 # pulse_inds = ljh.edge_trigger_many_chunks(trig_vec, threshold=1000, i0=0, imax=100, verbose=True)
 # pulse_inds = ljh.fasttrig(100000, threshold=50, closest_trig=50)
-filter = np.array([-1]*10+[1]*10)
+filter = np.array([-1]*4+[1]*4)
 
-pulse_inds_filter = ljh.fasttrig_filter(imax=ljh.nPulses//10, filter=filter, threshold=2000) # imax=ljh.nPulses//10
-noise_inds = ljhfiles.get_noise_trigger_inds(pulse_inds_filter, n_dead_samples=100000, 
+my_imax = ljh.nPulses # used in filter and in calculated real time of analysis
+pulse_inds_filter = ljh.fasttrig_filter(imax=my_imax, filter=filter, threshold=2000) # imax=ljh.nPulses//10
+noise_inds = ljhfiles.get_noise_trigger_inds(pulse_inds_filter, n_dead_samples=800, 
                                            n_record_samples=ljh.output_npre+ljh.output_npost,
                                             max_inds=5000) 
 
@@ -68,17 +69,17 @@ ljh.write_traces_to_new_ljh(pulse_inds_filter, ljh.path_with_incremented_runnum(
 ljh.write_traces_to_new_ljh(noise_inds, ljh.path_with_incremented_runnum(2000), overwrite=True)
 
 #summary of triggers and time
-print(f"number of triggers = {len(pulse_inds_filter)}") # RPF test
-t0= ljh.get_record_at(pulse_inds_filter[0])["posix_usec"] # first pulse time
-tf = ljh.get_record_at(pulse_inds_filter[len(pulse_inds_filter)-1])["posix_usec"] # last pulse time
-print(f"dt (s) = {(tf-t0)*1E-6}") #dt
-print(f"dt (h) = {(tf-t0)*1E-6/3600}") #dt
-print(f"trigger rate (/s) = {len(pulse_inds_filter)/((tf-t0)*1E-6)}") # trigger rate
-
-
+n_trig = len(pulse_inds_filter)
+dt_s = my_imax*ljh.nSamples*ljh.timebase
+rate_trig = n_trig/dt_s
+print(f"number of triggers = {n_trig}")
+print(f"dt (s) = {dt_s:0.5f}")
+print(f"trigger rate (/s) = {rate_trig:0.6f}")
+print(f"timebase = {ljh.timebase:0.6E}")
+t02 = ljh.timestamp_offset # this is the right start time; to do, get end of last record
 
 #make sure the output is what we intend
-pulse_files_output = files("0000")
+pulse_files_output = files("1005")
 ljh_output = ljhfiles.LJHFile(pulse_files_output[0])
 assert ljh_output._mmap[0]["posix_usec"] == ljh.get_record_at(pulse_inds_filter[0])["posix_usec"]
 assert ljh_output._mmap[0]["rowcount"] == ljh.get_record_at(pulse_inds_filter[0])["rowcount"]

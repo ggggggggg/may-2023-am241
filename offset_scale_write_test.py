@@ -40,7 +40,7 @@ ljh = ljhs[0]
 
 dest_path = ljh.path_with_incremented_runnum(5000)
 ljh.copy_ljh_with_offset_and_scaling(dest_path= dest_path,
-offset=20000, scaling=0.5, imax=10, 
+offset=20000, scaling=0.5, imax=ljh.nPulses, 
 overwrite=True)
 
 newljh = ljhfiles.LJHFile(dest_path)

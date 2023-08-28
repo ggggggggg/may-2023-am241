@@ -158,6 +158,7 @@ cython_debug/
 *.hdf5
 *.hdf5_for_make_projectors
 *.txt
-
-
+*.out
+*.save
+20230515
 BACKUP

@@ -20,16 +20,17 @@ except:
     d0 = os.getcwd()
 
 def file_pattern(runnum):
- #   p = os.path.join("/home","pcuser","data",f"20230519",f"{runnum}",f"20230519_run{runnum}_chan*.ljh")
- #  p = os.path.join(f"20230517",f"{runnum}",f"20230517_run{runnum}_chan*.ljh")
-    p = os.path.join(f"20230517",f"{runnum}",f"20230517_run{runnum}_chan*.ljh")
+    # p = os.path.join(f"20230517",f"{runnum}",f"20230517_run{runnum}_chan*.ljh")
+    # Specify channel 2 so it doesn't grab 1 as "first good dataset"
+   # p = os.path.join(f"20230515",f"{runnum}",f"20230515_run{runnum}_chan2.ljh")
+    p = os.path.join("/home","pcuser","data",f"20230519",f"{runnum}",f"20230519_run{runnum}_chan1.ljh")
     return p
 
 def files(runnum):
     return mass.filename_glob_expand(file_pattern(runnum))
 
-pulse_files = file_pattern("1000") # 1000 runnum orig + 1000
-noise_files = file_pattern("2000") # 2000 runnum orig + 2000
+pulse_files = file_pattern("1005") # 1000
+noise_files = file_pattern("2005") # 2000
 
 mass.line_models.VALIDATE_BIN_SIZE = False
 data = mass.TESGroup(filenames=pulse_files, noise_filenames=noise_files,
@@ -98,7 +99,7 @@ with open(os.path.join(ds.filename[:-9]+"experiment_state.txt"),"w") as f:
 
 dataoff = ChannelGroup(off_filenames)
 dataoff.setDefaultBinsize(1e4) # set the default bin size in eV for fits
-dsoff = dataoff[2]
+dsoff = dataoff[2] #2 for ch 2
 dsoff.cutAdd("cutResidualStdDev", lambda residualStdDev: residualStdDev < 8, setDefault=False, overwrite=True)
 dsoff.plotAvsB("relTimeSec", "residualStdDev")
 dsoff.plotAvsB("relTimeSec", "residualStdDev", cutRecipeName="cutResidualStdDev", axis=plt.gca())
@@ -126,7 +127,7 @@ cut_inds = np.nonzero(np.logical_not(cut_val))
 
 energyAndRelTimeSecWithFake = energyAndRelTimeSec[:]
 energyAndRelTimeSecWithFake[cut_inds,1] = 0
-np.savetxt(os.path.join(ds.filename[:-9]+"listmode.txt"), energyAndRelTimeSecWithFake, header="time since first trigger (s), energy (eV)")
+np.savetxt(os.path.join(ds.filename[:-9]+"ch1_listmode.txt"), energyAndRelTimeSecWithFake, header="time since first trigger (s), energy (eV)")
 
 
 # look at the weird ones

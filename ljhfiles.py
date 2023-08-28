@@ -199,7 +199,7 @@ class LJHFile():
             printstep = max(10, imax//100)
             for i in range(imax):
                 if i%printstep==0:
-                    print(f"{dest_path} {i}/{len(inds)}")
+                    print(f"{dest_path} {i}/{imax}") #was inds
                 record = self._mmap[i].copy()
                 record["data"] += offset
                 record["data"] = np.array(record["data"]*scaling,dtype="uint16")
@@ -220,21 +220,25 @@ class LJHFile():
     def path_with_incremented_runnum(self, inc):
         return path_with_incremented_runnum(os.path.abspath(self.filename), inc)
     
-    def plot_first_n_samples_with_inds(self, n, pulse_inds, noise_inds, filter=None):
-        j = n//self.nSamples+1
-        data = self._mmap["data"][:j].flatten()[:n]
+    def plot_first_n_samples_with_inds(self, n, pulse_inds, noise_inds, filter=None, imin=0):
+        jmin = imin//self.nSamples # this one should floor
+        jmax = (imin+n)//self.nSamples+1 # this one shoudl ceil, approx by +1
+        qmin = imin%self.nSamples
+        qmax = qmin+n
+        imax = imin+n
+        data = self._mmap["data"][jmin:jmax].flatten()[qmin:qmax]
         plt.figure()
-        plt.plot(data)
+        plt.plot(np.arange(imin, imax), data)
         pulse_inds = np.array(pulse_inds,dtype="int64")
         noise_inds = np.array(noise_inds,dtype="int64")
-        pi = pulse_inds[pulse_inds<n]
-        ni = noise_inds[noise_inds<n]
-        plt.plot(pi, data[pi], "o", label="pulse_inds")
-        plt.plot(ni, data[ni], "o", label="pulse_inds")
+        pi = pulse_inds[np.logical_and(imin<pulse_inds, pulse_inds<imax)]
+        ni = noise_inds[np.logical_and(imin<noise_inds, noise_inds<imax)]
+        plt.plot(pi, data[pi-imin], "o", label="pulse_inds")
+        plt.plot(ni, data[ni-imin], "o", label="pulse_inds")
         if filter is not None:
             fv = np.convolve(filter[::-1], data, "valid")
-            plt.plot(fv, label="filter")
-            plt.plot(pi-len(filter)//2, fv[pi-len(filter)//2], "o", label="pulse_inds filter")
+            plt.plot(np.arange(imin, imin+len(fv)), fv, label="filter")
+            plt.plot(pi-len(filter)//2, fv[pi-len(filter)//2-imin], "o", label="pulse_inds filter")
         plt.xlabel("frame index")
         plt.ylabel("ljh data value (arb)")
         plt.legend()
@@ -258,7 +262,7 @@ class LJHFile():
     #                                                 closest_trig=closest_trig)
     #     return inds
     
-    def fasttrig_filter(self, imax, filter, threshold):
+    def fasttrig_filter(self, imax, filter, threshold, imin=0):
         imax = min(imax, len(self._mmap))
         inds = numba.typed.List([0])[:0] # get an integer typed list?
         datas = self._mmap["data"]
@@ -269,7 +273,7 @@ class LJHFile():
         cache[:] = data[:len(filter)]
         filtered_abc = (0,0,0)
         printstep = max(10, imax//100)
-        for i in range(imax):
+        for i in range(imin, imax):
             data[:] = datas[i]
             if i%printstep == 0:
                 print(f"fasttrig_filtered {i=}/{imax=}")

@@ -115,6 +115,7 @@ def plot_hist(self,bin_edges,attr="p_energy",axis=None,label_lines=[],category={
         plt.figure()
         axis=plt.gca()
     x,y = self.hist(bin_edges, attr, category=category, g_func=g_func, stateMask=stateMask)
+    # np.save
     axis.plot(x,y,drawstyle="steps-mid")
     axis.set_xlabel(attr)
     axis.set_ylabel("counts per %0.1f unit bin"%(bin_edges[1]-bin_edges[0]))
