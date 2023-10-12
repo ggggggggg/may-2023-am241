@@ -9,7 +9,7 @@ import lmfit
 from dataclasses import dataclass
 from typing import List
 from collections import OrderedDict
-import devel
+# import devel
 import csv
 plt.close("all")
 plt.ion()

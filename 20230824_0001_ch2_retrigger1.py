@@ -47,7 +47,7 @@ ljh.set_output_npre_npost(500,500)
 # filter = np.array([-1]*10+[1]*10) # for positive pulses
 filter = np.array([1]*10+[-1]*10) # for negative pulses
 
-my_imax = ljh.nPulses # used in filter and in calculated real time of analysis
+my_imax = ljh.nPulses//10 # used in filter and in calculated real time of analysis
 
 pulse_inds_filter = ljh.fasttrig_filter(imax=my_imax, filter=filter, threshold=5000) # imax=ljh.nPulses//10
 noise_inds = ljhfiles.get_noise_trigger_inds(pulse_inds_filter, n_dead_samples=100000, 

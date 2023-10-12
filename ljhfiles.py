@@ -188,6 +188,22 @@ class LJHFile():
                 record = self.get_record_at(ind)
                 record.tofile(dest_fp)
 
+    def write_traces_to_new_ljh_with_offset_and_scaling(self, inds, dest_path, scaling, offset, overwrite=False):
+        if os.path.exists(dest_path) and not overwrite:
+            raise IOError(f"The ljhfile {dest_path} exists and overwrite was not set to True")
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        
+        with open(dest_path, "wb") as dest_fp:
+            dest_fp.write(ljh_header_str(self.output_header_dict()).encode() )
+            printstep = max(10, len(inds)//100)
+            for i, ind in enumerate(inds):
+                if i%printstep==0:
+                    print(f"{dest_path} {i}/{len(inds)}")
+                record = self.get_record_at(ind)
+                record["data"] += offset
+                record["data"] = np.array(record["data"]*scaling,dtype="uint16")
+                record.tofile(dest_fp)
+
     def copy_ljh_with_offset_and_scaling(self, dest_path, offset, scaling, imax, overwrite=False):
         if os.path.exists(dest_path) and not overwrite:
             raise IOError(f"The ljhfile {dest_path} exists and overwrite was not set to True")
@@ -243,7 +259,7 @@ class LJHFile():
         plt.ylabel("ljh data value (arb)")
         plt.legend()
         plt.grid(True)
-        plt.tight_layout()
+      #  plt.tight_layout()
 
     # def fasttrig(self, imax, threshold, closest_trig):
     #     imax = min(imax, len(self._mmap))
@@ -262,7 +278,7 @@ class LJHFile():
     #                                                 closest_trig=closest_trig)
     #     return inds
     
-    def fasttrig_filter(self, imax, filter, threshold, imin=0):
+    def fasttrig_filter(self, imax, filter, threshold, imin=0,tau=0):
         imax = min(imax, len(self._mmap))
         inds = numba.typed.List([0])[:0] # get an integer typed list?
         datas = self._mmap["data"]
@@ -278,7 +294,7 @@ class LJHFile():
             if i%printstep == 0:
                 print(f"fasttrig_filtered {i=}/{imax=}")
             cache, filtered_abc = fasttrig_filter_segment(data, filter, cache, filtered_abc, threshold, 
-                                                          inds, i*self.nSamples-len(filter)//2)
+                                                          inds, i*self.nSamples-len(filter)//2,tau)
         return inds        
     
     def read_trace(self, i):
@@ -302,15 +318,34 @@ class LJHFile():
 #     return n_since_pulse, dnext
 
 @njit 
-def fasttrig_filter_segment(data, filter, cache, filtered_abc, threshold, inds, ind_offset):
+def fasttrig_filter_segment(data, filter, cache, filtered_abc, threshold, inds, ind_offset,tau=0): # include deadtime (holdoff)
     a,b,c = filtered_abc
     for j in range(len(data)):
         running_replace_last_in_place(cache, data[j])
         a,b = b,c
         c = np.dot(cache, filter)
+        
         if b>threshold and b>=c and b>a:
-            inds.append(j+ind_offset)
+            if len(inds)<1: # if first trigger, then tlast = 0
+                tlast = 0
+            else:
+                tlast = inds[-1] # else, get previous index
+            dt = j+ind_offset-tlast # apply non-extending dead-time (holdoff)
+            if dt > tau:
+                inds.append(j+ind_offset)
     return cache, filtered_abc
+
+# =============================================================================
+# def fasttrig_filter_segment(data, filter, cache, filtered_abc, threshold, inds, ind_offset):
+#     a,b,c = filtered_abc
+#     for j in range(len(data)):
+#         running_replace_last_in_place(cache, data[j])
+#         a,b = b,c
+#         c = np.dot(cache, filter)
+#         if b>threshold and b>=c and b>a:
+#             inds.append(j+ind_offset)
+#     return cache, filtered_abc
+# =============================================================================
 
 
 
