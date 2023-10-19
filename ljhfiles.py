@@ -173,6 +173,17 @@ class LJHFile():
         self.output_record["posix_usec"] = self._cache_posix_usec+j_start*self.timebase*1e6
         return self.output_record
     
+    def get_long_record_at(self, j, n_samples, npre):
+        i_start = (j-npre)//self.nSamples
+        j_start = (j-npre) - i_start*self.nSamples
+        data = np.zeros(n_samples)
+        data[:self.nSamples-j_start] = self._mmap["data"][i_start][j_start:]
+        for i in 1+np.arange((n_samples-j_start)//self.nSamples):
+            a = (i)*self.nSamples-j_start
+            b = a+self.nSamples
+            data[a:b] = self._mmap["data"][i_start+i]
+        data[b:] = self._mmap["data"][i_start+i+1][:len(data)-b] # fill in end
+        return data     
     
     def write_traces_to_new_ljh(self, inds, dest_path, overwrite=False):
         if os.path.exists(dest_path) and not overwrite:
