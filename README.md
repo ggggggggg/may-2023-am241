@@ -12,7 +12,7 @@ Upon re-running the code, the various created files will be overwritten. Sometim
 1. cd to this directory, `may 2023 am241`
 2. either copy the needed data files into this directory, or edit the paths at the satrt of 20230515_0000_retrigger.py to point to your data dir
 2. ipython
-[2.5 RPF - run spyder from that directory]
+[2.5 RPF - run spyder from that directory // set python path to be the qsp version]
 3. %run 20230515_0000_retrigger.py
 4. on line 48 (as of this writing) is `pulse_inds_filter = ljh.fasttrig_filter(imax=ljh.nPulses//10, filter=filter, threshold=200)`, the imax argument is used to process only part of the ljh file. Here I'm processing the first 10% of the file. Remove the `//10` to process the whole file. 
 5. inspect plots, the triggering plot should identify the pulses well, the one record plot should have a record with the rise at x value of 0, the pretrigger mean plot vs time has a jump about halfway through (this is bad for energy resolution without extra code)

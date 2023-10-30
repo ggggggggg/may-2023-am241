@@ -19,7 +19,7 @@ plt.ion()
 ## +++++ BEGIN INPUTS +++++ ##
 
 my_dir = "/home/pcuser/data"
-my_folder = "20231017"
+my_folder = "20231003"
 my_runnum = "0000"
 my_chan = "3" # to do : implement make this "*" for processing all channels
 
@@ -27,7 +27,7 @@ my_polarity = -1 # make this -1 for negative pulses
 
 def my_irange(npulses): 
  #   return int(npulses)        # npulses - used in filter and in calculated real time of analysis
-    return int(npulses)//10        # npulses - used in filter and in calculated real time of analysis
+    return int(npulses)        # npulses - used in filter and in calculated real time of analysis
 def my_imin(npulses): 
     return 0                # 0 - used in filter and in calculated real time of analysis
 
@@ -114,11 +114,14 @@ ljh.write_traces_to_new_ljh_with_offset_and_scaling(noise_inds, ljh.path_with_in
 #                                                     offset=offset, scaling=scaling, overwrite=True)
 
 spectrum = mass.mathstat.power_spectrum.PowerSpectrum(my_long_noise_record_n_samples // 2, dt=ljh.timebase)
-long_noise_ljh = ljhfiles.LJHFile(ljh.path_with_incremented_runnum(3000))
+# long_noise_ljh = ljhfiles.LJHFile(ljh.path_with_incremented_runnum(3000))
 window = np.ones(my_long_noise_record_n_samples)
 n_long_records = min(len(long_noise_inds), 20)
 for i in range(n_long_records):
-    spectrum.addDataSegment(ljh.get_long_record_at(long_noise_inds[i], my_long_noise_record_n_samples, 0), window=window)
+    long_record = ljh.get_long_record_at(long_noise_inds[i], my_long_noise_record_n_samples, 0)
+    if long_record is None:
+        break # wasn't enough data to get that long record
+    spectrum.addDataSegment(long_record, window=window)
 f = spectrum.frequencies()
 psd = spectrum.spectrum()
 plt.figure()
@@ -131,7 +134,10 @@ plt.grid(True)
 
 plt.figure()
 for i in range(n_long_records):
-    plt.plot(ljh.get_long_record_at(long_noise_inds[i], my_long_noise_record_n_samples, 0))
+    long_record = ljh.get_long_record_at(long_noise_inds[i], my_long_noise_record_n_samples, 0)
+    if long_record is None:
+        break # wasn't enough data to get that long record
+    plt.plot(long_record)
     # plt.plot(ljh.get_record_at(long_noise_inds[i])["data"])
 
 # long_noise_records = mass.NoiseRecords(ljh.path_with_incremented_runnum(3000))

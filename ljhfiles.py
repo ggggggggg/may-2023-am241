@@ -178,7 +178,10 @@ class LJHFile():
         j_start = (j-npre) - i_start*self.nSamples
         data = np.zeros(n_samples)
         data[:self.nSamples-j_start] = self._mmap["data"][i_start][j_start:]
-        for i in 1+np.arange((n_samples-j_start)//self.nSamples):
+        i_max = (n_samples-j_start)//self.nSamples
+        if i_max >= len(self._mmap) or i_max <= 0:
+            return None
+        for i in 1+np.arange(i_max):
             a = (i)*self.nSamples-j_start
             b = a+self.nSamples
             data[a:b] = self._mmap["data"][i_start+i]
@@ -248,6 +251,7 @@ class LJHFile():
         return path_with_incremented_runnum(os.path.abspath(self.filename), inc)
     
     def plot_first_n_samples_with_inds(self, n, pulse_inds, noise_inds, filter=None, imin=0):
+        n = min(n, len(self._mmap)*self.nSamples)
         jmin = imin//self.nSamples # this one should floor
         jmax = (imin+n)//self.nSamples+1 # this one shoudl ceil, approx by +1
         qmin = imin%self.nSamples
