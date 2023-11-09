@@ -178,7 +178,7 @@ class LJHFile():
         j_start = (j-npre) - i_start*self.nSamples
         data = np.zeros(n_samples)
         data[:self.nSamples-j_start] = self._mmap["data"][i_start][j_start:]
-        i_max = (n_samples-j_start)//self.nSamples
+        i_max = (n_samples-j_start-1)//self.nSamples
         if i_max >= len(self._mmap) or i_max <= 0:
             return None
         for i in 1+np.arange(i_max):
