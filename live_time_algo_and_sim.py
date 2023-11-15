@@ -68,9 +68,10 @@ def random_bools(N, frac_true):
 
 if __name__ == "__main__":
     chosen_count_rate_hz = 2.0
-    N_wanted = 1e5
+    N_wanted = 1e6
     chosen_duration_s = N_wanted/chosen_count_rate_hz
     timestamps_s = generate_timestamps(chosen_count_rate_hz, chosen_duration_s)
+    print("class 1 events")
     for chosen_deadtime_s in np.linspace(0,4, 5):
         live_ranges_s, live_triggerd_inds = live_ranges(timestamps_s, dead_after_arb=chosen_deadtime_s)
         N_observed = len(live_ranges_s)
@@ -82,6 +83,7 @@ if __name__ == "__main__":
         print(f"{chosen_deadtime_s=:.2f} s, {live_time_s=:0.2f} {N_observed=}, {measured_rate:0.3f} hz +/- {measured_rate_sigma:.3f} and true {chosen_count_rate_hz:0.2f}")
     
     print()
+    print("class 1 (A) and 2 (B) events")
     # now we're going to do an experiment where we have two kinds of counts from 
     # two different sources of events
     # we merge the timestamps
@@ -104,6 +106,8 @@ if __name__ == "__main__":
 
 
     print()
+    print("class 1 and class 3/4 (bad) events")
+    print("since we're randomly assigning good or bad, the definition is symmetric. Therefore I can either throw away live ranges previous to bad triggers when calculate the count rate of good events, or I can throw away live ranges previous to good events to determine the count rate of bad events. In both cases I should recoved the full count rate, not the partial count rate.")
     # now we're going to look only at one population of pulses, but we're going to mark some 
     # fraciton of them bad
     # bad can represent a foil + non_foil event or an event we can't analyze for energy for another reason
