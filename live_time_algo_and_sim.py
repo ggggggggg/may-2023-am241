@@ -21,6 +21,7 @@ def live_ranges(trig_times_arb, dead_after_arb):
     live_triggered_inds a numpy array of indicies into trig_times_arb corresponding to the end of each live_range, 
     so corresponding to the event which a trigger was observed during a live_time"""
     assert issorted(trig_times_arb)
+    assert(dead_after_arb>=0)
     live_ranges_arb = []
     live_triggered_inds = []
     live_start = 0 # start live, should we start dead?
@@ -39,6 +40,36 @@ def live_ranges(trig_times_arb, dead_after_arb):
             live_triggered_inds.append(i)
             live_start = b+dead_after_arb
     return live_ranges_arb, np.array(live_triggered_inds)
+
+def live_ranges_both_directions(trig_times_arb, dead_after_arb, must_be_clear_after_arb):
+    assert issorted(trig_times_arb)
+    assert(dead_after_arb>=0)
+    assert(must_be_clear_after_arb>=0)
+    live_ranges_arb = []
+    live_triggered_inds = []
+    relegated_inds = []
+    live_start = 0 # start live, should we start dead?
+    a,b,c = 0, 0, 0 # assume we just saw a trigger
+    for i in range(len(trig_times_arb)):
+        a,b = b,c
+        c = trig_times_arb[i]
+        if live_start>b:
+            # if the next pulse happens before live start, we reject that pulse and
+            # extend the dead time by not starting the live time
+            live_start = b+dead_after_arb
+        elif c-b > must_be_clear_after_arb:
+            # the pulse doesn't have enough clear time after, so we relegated it
+            # and extend dead time
+            live_start = b+dead_after_arb
+            relegated_inds.append(i)            
+        else:
+            # accept the pulse
+            live_end=b
+            live_ranges_arb.append((live_start, live_end))
+            live_triggered_inds.append(i)
+            live_start = b+dead_after_arb
+
+    return live_ranges_arb, np.array(live_triggered_inds), np.array(relegated_inds)    
 
 def live_time_from_live_ranges(live_ranges_s):
     live_time_s = 0
@@ -67,12 +98,18 @@ def random_bools(N, frac_true):
 
 
 if __name__ == "__main__":
+    print("class 1: good foil events")
+    print("class 2: non-foil events")
+    print("class 3: foil event with other event too nearby in time")
+    print("class 4: foil + non-foil event")
+    print()
+
     chosen_count_rate_hz = 2.0
     N_wanted = 1e6
     chosen_duration_s = N_wanted/chosen_count_rate_hz
     timestamps_s = generate_timestamps(chosen_count_rate_hz, chosen_duration_s)
     print("class 1 events")
-    for chosen_deadtime_s in np.linspace(0,4, 5):
+    for chosen_deadtime_s in np.linspace(0,0.4, 5):
         live_ranges_s, live_triggerd_inds = live_ranges(timestamps_s, dead_after_arb=chosen_deadtime_s)
         N_observed = len(live_ranges_s)
         if N_observed<=1:
@@ -87,7 +124,7 @@ if __name__ == "__main__":
     # now we're going to do an experiment where we have two kinds of counts from 
     # two different sources of events
     # we merge the timestamps
-    for chosen_deadtime_s in np.linspace(0,4, 5):
+    for chosen_deadtime_s in np.linspace(0,0.4, 5):
         chosen_count_rate_hz_A = 1.0
         chosen_count_rate_hz_B = 0.01
         timestamps_s_A = generate_timestamps(chosen_count_rate_hz_A, chosen_duration_s)
@@ -114,7 +151,7 @@ if __name__ == "__main__":
     # strategy is going to be to pretend the detector was off during the live range ending in
     # this bad event
     bad_frac = 0.1
-    for chosen_deadtime_s in np.linspace(0,2, 5):
+    for chosen_deadtime_s in np.linspace(0,0.4, 5):
         live_ranges_s_for_good, live_triggerd_inds_for_good = live_ranges(timestamps_s, dead_after_arb=chosen_deadtime_s)
         is_bad = random_bools(len(live_triggerd_inds_for_good), frac_true=bad_frac)
         N_observed_good = np.sum(is_bad==False)
@@ -132,7 +169,22 @@ if __name__ == "__main__":
         measured_rate_good_sigma = np.sqrt(N_observed_good)/live_time_s_good
         measured_rate_bad = N_observed_bad/live_time_s_bad
         measured_rate_bad_sigma = np.sqrt(N_observed_bad)/live_time_s_bad
-
         print(f"{chosen_deadtime_s=:.2f} s, {bad_frac=} {live_time_s_good=:0.2f} {N_observed_good=}, {measured_rate_good:0.3f} hz +/- {measured_rate_good_sigma:.3f} and true {chosen_count_rate_hz:0.2f}")
         print(f"{chosen_deadtime_s=:.2f} s, {bad_frac=} {live_time_s_bad=:0.2f} {N_observed_bad=}, {measured_rate_bad:0.3f} hz +/- {measured_rate_bad_sigma:.3f} and true {chosen_count_rate_hz:0.2f}")
+        
 
+    print()
+    print("class 1 and class 3 (nearby in time) events")
+    chosen_must_be_clear_after_s = 0.1
+    for chosen_deadtime_s in np.linspace(0,0.4, 5):
+        x_13 = live_ranges_both_directions(timestamps_s, 
+                                        dead_after_arb=chosen_deadtime_s, 
+                                        must_be_clear_after_arb=chosen_must_be_clear_after_s)
+        live_ranges_s_13, live_triggerd_inds_13, relegated_inds_13 = x_13
+        N_observed_13 = len(live_ranges_s_13)
+        if N_observed_13<=1:
+            break
+        live_time_s_13 = live_time_from_live_ranges(live_ranges_s_13)
+        measured_rate_13 = N_observed_13/live_time_s_13
+        measured_rate_sigma_13 = np.sqrt(N_observed_13)/live_time_s_13
+        print(f"{chosen_deadtime_s=:.2f} s, {chosen_must_be_clear_after_s=:.2f} s, {live_time_s_13=:0.2f}\n {N_observed_13=}, {measured_rate_13:0.3f} hz +/- {measured_rate_sigma_13:.3f} and true {chosen_count_rate_hz:0.2f}")
