@@ -440,7 +440,7 @@ def live_time_plot(j_start, n_samples, title=""):
 
 live_time_plot(n_samples = 500000, j_start = 0, title="start of data")
 live_time_plot(n_samples = 100000, j_start = ds.rowcount[inds_A[-1]]//ds.number_of_rows-50000, title="A example")
-live_time_plot(n_samples = 100000, j_start = ds.rowcount[inds_B[-1]]//ds.number_of_rows-50000, title="B example")
+live_time_plot(n_samples = 100000, j_start = ds.rowcount[np.nonzero(pulse_bin==1)[0][-10]]//ds.number_of_rows-50000, title="B example")
 live_time_plot(n_samples = 100000, j_start = ds.rowcount[inds_C[-1]]//ds.number_of_rows-50000, title="C example")
 live_time_plot(n_samples = 100000, j_start = ds.rowcount[inds_D[1]]//ds.number_of_rows-50000, title="D example big")
 live_time_plot(n_samples = 100000, j_start = ds.rowcount[inds_D[0]]//ds.number_of_rows-50000, title="D example small")
