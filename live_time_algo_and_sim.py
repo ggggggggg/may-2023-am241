@@ -188,3 +188,14 @@ if __name__ == "__main__":
         measured_rate_13 = N_observed_13/live_time_s_13
         measured_rate_sigma_13 = np.sqrt(N_observed_13)/live_time_s_13
         print(f"{chosen_deadtime_s=:.2f} s, {chosen_must_be_clear_after_s=:.2f} s, {live_time_s_13=:0.2f}\n {N_observed_13=}, {measured_rate_13:0.3f} hz +/- {measured_rate_sigma_13:.3f} and true {chosen_count_rate_hz:0.2f}")
+
+
+
+    # brads method notes
+    # I tried to implement brad's method thinking I could skip the histogram and fit for count rate
+    # so I started by using my live_ranges method with the dead_after_arb argument
+    # so I would know the actual minimum time seperation between triggers
+    # at that point, to estimate how many counts are missing, you need to know the count rate
+    # once you know the count rate, why estimate how many counts are missing? 
+    # you already know the final answer... 
+    # so i think it only makes sense if you are going to not add back in counts?
