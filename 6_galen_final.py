@@ -156,6 +156,7 @@ plt.title(f"""Histogram Live Time = {live_time_s:0.2f} s. Total Counts = {total_
           Total activity = {total_activity:.3f}+/-{total_activity_uncertainty:.3f} events/s
           ROI activity = {am241_bq_roi_bq:0.3f}+/-{am241_bq_roi_bq_sigma:0.3f}""")
 plt.legend()
+plt.tight_layout()
 
 
 # plot representatives of pulse classifications
