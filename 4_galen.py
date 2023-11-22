@@ -12,6 +12,7 @@ from collections import OrderedDict
 import csv
 import truebqlines
 import ljhfiles
+import live_time_algo_and_sim
 plt.close("all")
 plt.ion()
 
@@ -21,8 +22,8 @@ plt.ion()
 
 
 my_dir = "/home/pcuser/data"
-my_folder = "20231017"
-my_runnum = "0000"
+my_folder = "20231003"
+my_runnum = "0002"
 my_chan = "3" # to do : implement make this "*" for processing all channels
 
 ## +++++ _END_ INPUTS +++++ ##
@@ -110,13 +111,15 @@ with h5py.File(model_hdf5,"w") as h5:
         optimize_dp_dt=False, # seems to work better for gamma data
         extra_n_basis_5lag=0, # mostly for testing, might help you make a more efficient basis for gamma rays, but doesn't seem neccesary
         noise_weight_basis=True) # only for testing, may not even work right to set to False
-
+print("done saveing model file")
 
 with h5py.File(model_hdf5,"r") as h5:
     models = {int(ch) : mass.pulse_model.PulseModel.fromHDF5(h5[ch]) for ch in h5.keys()}
 models[ds.channum].plot()
+print("done making model plot")
 output_dir = os.path.dirname(ds.filename)
 os.makedirs(output_dir, exist_ok=True)
+print("start ljh2off")
 r = mass.ljh2off.ljh2off_loop(ljhpath = ds.filename,
     h5_path = model_hdf5,
     output_dir = output_dir,
@@ -125,6 +128,7 @@ r = mass.ljh2off.ljh2off_loop(ljhpath = ds.filename,
     require_experiment_state=False,
     show_progress=True)
 ljh_filenames, off_filenames = r
+print("done with ljh2off")
 
 # write a dummy experiment state file, since the data didn't come with one
 with open(os.path.join(ds.filename[:-9]+"experiment_state.txt"),"w") as f:
@@ -137,7 +141,7 @@ for channum, dsoff in dataoff.items():
     # where cba refers to the coefficiencts of a polynomial fit to the 5 lags of the filter
     filter_5lag = models[channum].f_5lag
     dsoff.add5LagRecipes(filter_5lag)
-
+print("done opening dataoff")
 dataoff.setDefaultBinsize(2e3) # set the default bin size in eV for fits
 dsoff = dataoff[ds.channum]
 dsoff.cutAdd("cutResidualStdDev", lambda residualStdDev: residualStdDev < 15, setDefault=False, overwrite=True)

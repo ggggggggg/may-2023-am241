@@ -71,6 +71,27 @@ def live_ranges_both_directions(trig_times_arb, dead_after_arb, must_be_clear_af
 
     return live_ranges_arb, np.array(live_triggered_inds), np.array(relegated_inds)    
 
+def live_ranges_both_directions_simple(trig_times_arb, dead_after_arb, must_be_clear_after_arb):
+    assert issorted(trig_times_arb)
+    assert(dead_after_arb>=0)
+    assert(must_be_clear_after_arb>=0)
+    live_ranges_arb = []
+    live_triggered_inds = []
+    relegated_inds = []
+    a,b,c = trig_times_arb[0], trig_times_arb[0], trig_times_arb[0] # assume we just saw a trigger
+    for i in range(1,len(trig_times_arb)):
+        a,b = b,c
+        c = trig_times_arb[i]
+        clear_before_arb = b-a
+        clear_after_arb = c-b
+        if clear_before_arb > dead_after_arb and clear_after_arb > must_be_clear_after_arb:
+            live_triggered_inds.append(i-1)
+            live_ranges_arb.append((a+dead_after_arb, b))
+        else:
+            relegated_inds.append(i-1)
+    return live_ranges_arb, np.array(live_triggered_inds), np.array(relegated_inds)        
+
+
 def live_time_from_live_ranges(live_ranges_s):
     live_time_s = 0
     for (a,b) in live_ranges_s:
@@ -96,6 +117,44 @@ def merge_sorted_arrays_with_source_indicator(*arrays):
 def random_bools(N, frac_true):
     return np.random.random(N)<frac_true
 
+
+event_g = None
+def onpick(event):
+    global event_g
+    event_g = event
+    print(event_g.artist.get_label())
+
+def plot_inds(ds, inds, label, max_pulses_to_plot=40):
+    import pylab as plt
+    cmap = plt.matplotlib.colormaps.get_cmap("rainbow")
+    plt.figure()
+    for j, i in enumerate(inds):
+        if j >= max_pulses_to_plot:
+            break
+        color = cmap(j/min(len(inds), max_pulses_to_plot))
+        plt.plot(ds.read_trace(i), "--", color=color, label=f"{i}", picker=True, pickradius=5)
+        # if plot_modeled:
+        #     plt.plot(dsoff.offFile.modeledPulse(i), color=color)       
+    plt.legend()
+    plt.title(f"{label} {ds.shortname}")
+    plt.xlabel("sample number")
+    plt.ylabel("signal (arb)")
+    plt.gcf().canvas.mpl_connect('pick_event', onpick)
+
+def jank_residual_std_dev(ds):
+    _residual_std_dev = np.zeros(ds.nPulses)
+    _fv = np.zeros(ds.nPulses)
+    template = ds.average_pulse-np.mean(ds.average_pulse)
+    template = template/np.sqrt(np.dot(template, template))
+    for i in range(ds.nPulses):
+        trace = ds.read_trace(i)
+        trace = trace- np.mean(trace)
+        fv = np.dot(template, trace)
+        residual = trace-template*fv
+        residual_std_dev = np.std(residual)
+        _residual_std_dev[i] = residual_std_dev
+        _fv[i] = fv
+    return _residual_std_dev,  _fv
 
 if __name__ == "__main__":
     print("class 1: good foil events")

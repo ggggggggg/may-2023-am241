@@ -20,7 +20,7 @@ plt.ion()
 
 my_dir = "/home/pcuser/data"
 my_folder = "20231003"
-my_runnum = "0001"
+my_runnum = "0002"
 my_chan = "3" # to do : implement make this "*" for processing all channels
 
 my_polarity = -1 # make this -1 for negative pulses
