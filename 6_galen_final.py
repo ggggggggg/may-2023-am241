@@ -130,10 +130,10 @@ roi_lo = 5537000
 roi_hi = 5665000
 inds_roi = np.nonzero((energies>roi_lo) & (energies<roi_hi))[0]
 total_counts_roi = len(inds_roi)
-live_time_s_roi = np.sum(ds.time_since_last[inds_roi]-dead_after_s)
+live_time_s = np.sum(ds.time_since_last[energies>0]-dead_after_s)
 #   5. Calc Bq
-am241_bq_roi_bq = total_counts_roi/live_time_s_roi
-am241_bq_roi_bq_sigma = np.sqrt(total_counts_roi)/live_time_s_roi
+am241_bq_roi_bq = total_counts_roi/live_time_s
+am241_bq_roi_bq_sigma = np.sqrt(total_counts_roi)/live_time_s
 # 	4. Plot histogram
 # live_time_s = live_time_algo_and_sim.live_time_from_live_ranges(live_ranges_s)
 def binsize(x):
@@ -142,7 +142,6 @@ def midpoints(x):
     return (x[1:]+x[:-1])/2
 counts, _ = np.histogram(energies, bin_edges)
 total_counts = counts.sum()
-live_time_s = np.sum(ds.time_since_last[energies>0]-dead_after_s)
 total_activity = total_counts/live_time_s
 total_activity_uncertainty = np.sqrt(total_counts)/live_time_s
 plt.figure()
@@ -153,7 +152,8 @@ plt.fill_between(midpoints(bin_edges)[roi_plot_inds], counts[roi_plot_inds], ste
 plt.xlabel("energy / eV (with category having specific values)")
 plt.ylabel(f"counts per {binsize(bin_edges):0.1f} eV")
 plt.title(f"""Histogram Live Time = {live_time_s:0.2f} s. Total Counts = {total_counts}
-          Total activity = {total_activity:.3f}+/-{total_activity_uncertainty:.3f} events/s
+          Total activity = {total_activity:.3f}+/-{total_activity_uncertainty:.3f} events/s, non ROI counts = {total_counts-total_counts_roi}
+          ROI counts = {total_counts_roi=}
           ROI activity = {am241_bq_roi_bq:0.3f}+/-{am241_bq_roi_bq_sigma:0.3f}""")
 plt.legend()
 plt.tight_layout()
@@ -171,3 +171,10 @@ just_below_inds = np.nonzero((energies<roi_lo) & (np.abs(energies-roi_lo)<100000
 just_above_inds = np.nonzero((energies>roi_hi) & (np.abs(energies-roi_hi)<100000))[0]
 live_time_algo_and_sim.plot_inds(ds, just_below_inds, label=f"just_below_inds", max_pulses_to_plot=50)
 live_time_algo_and_sim.plot_inds(ds, just_above_inds, label=f"just_above_inds", max_pulses_to_plot=50)
+
+model = mass.get_model("Am241Q", has_tails=True)
+result = model.fit(bin_centers =midpoints(bin_edges)[roi_plot_inds], data=counts[roi_plot_inds])
+result.plotm()
+counts_fit=int(result.params["integral"].value)
+counts_roi=total_counts_roi
+print(f"{counts_fit=} {counts_roi=}, {1-(counts_fit/counts_roi)=:.2f}")
